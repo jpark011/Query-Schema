@@ -20,11 +20,27 @@ EXEC SQL BEGIN DECLARE SECTION;
     char appearsin[11];
     int startpage;
     int endpage;
+    int numAuthors;
 EXEC SQL END DECLARE SECTION;
 
 typedef enum Type {
     Book, Journal, Proceedings, Article
 } Type;
+
+const char BOOK[] = "book";
+const char JOURNAL[] = "journal";
+const char PROCEEDINGS[] = "proceedings";
+const char ARTICLE[] = "article";
+
+char* getType( Type t ) {
+    switch (t) {
+        case Book:          return BOOK;
+        case Journal:       return JOURNAL;
+        case Proceedings:   return PROCEEDINGS;
+        case Article:       return ARTICLE;
+        default:            return NULL;  
+    }
+}
 
 int main( int argc, char *argv[] ) {
     if ( argc != 2 ) {
@@ -62,14 +78,66 @@ int main( int argc, char *argv[] ) {
             ) unionPu
                 ON unionPu.pubid = Pu.pubid
         WHERE Au.name = :name
-        ORDER BY unionPu.year, Au.name;
+        ORDER BY unionPu.year;
     EXEC SQL OPEN p;
     EXEC SQL WHENEVER NOT FOUND GO TO end;
     for (;;) {
+        Type t;
         EXEC SQL FETCH p INTO :name, :title, :pubid, :year, :volume, :number, :publisher,
                                 :appearsin, :startpage, :endpage;
-        printf("%s, %s, %s, %d, %d, %d, %s, %s, %d, %d\n", name, title, pubid, year, volume, number, publisher,
-                                appearsin, startpage, endpage);
+        if ( appearsin != NULL ) {          // article
+            t = Article;
+        } else if ( publisher != NULL ) {   // book 
+            t = Book;
+        } else if ( 0 <= volume ) {         // journal
+            t = Journal;
+        } else {                            // proceedings
+            t = Proceedings;
+        }
+
+        printf( "Pubid: %s\n", pubid );
+        printf( "Type: %s\n", getType( t ) );
+        printf( "Title: %s\n", title );
+
+        if ( t == Book || t == Article ) {
+            EXEC SQL DECLARE a CURSOR FOR
+                SELECT Au.name name
+                FROM author Au
+                    JOIN wrote W
+                        ON W.aid = Au.aid
+                WHERE W.pubid = :pubid
+                ORDER BY Au.name;
+        }
+
+        switch ( t ) {
+            case Proceedings:
+                printf("Authors: ");
+                for (;;) {
+                    EXEC SQL FETCH a INTO :name
+                    printf("%s, ", name);
+                }
+                printf("\nYear: %d\n", year);
+                break;
+            case Journal:
+                printf("Volume: %d\n", year);
+                printf("Number: %d\n", year);
+                printf("Year: %d\n", year);
+                break;
+            case Book:
+                printf("Year: %d\n", year);
+                break;
+            case Article:
+                printf("Authors: ");
+                for (;;) {
+                    EXEC SQL FETCH a INTO :name
+                    printf("%s, ", name);
+                }
+                printf("Volume: %d\n", year);
+                printf("In: %s\n", appearsin);
+                printf("Pages: %d--%d\n", startpage, endpage);
+                break;
+            default:
+        }
     }
 end:
     EXEC SQL CLOSE p;

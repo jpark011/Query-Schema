@@ -32,3 +32,15 @@ FROM book B \
     JOIN author Au
         ON Au.aid = W.aid
 WHERE B.pubid = :pubid
+
+
+SELECT count(aid) numAuthors
+FROM author Au
+    JOIN wrote W
+        ON W.aid = Au.aid
+WHERE W.pubid = 
+
+SELECT appearsin
+FROM article A
+WHERE A.pubid = :pubid
+ORDER BY startpage
