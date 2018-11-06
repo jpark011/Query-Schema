@@ -1,5 +1,9 @@
-SELECT * \
-FROM publication Pu \
+SELECT Au.name name, Pu.title title, Pu.pubid pubid \
+FROM author Au \
+    JOIN wrote W \
+        ON W.aid = Au.aid \
+    JOIN publication Pu \
+        ON Pu.pubid = W.pubid \
     LEFT JOIN proceedings Pr \
         ON Pr.pubid = Pu.pubid \
     LEFT JOIN journal J \
@@ -7,4 +11,15 @@ FROM publication Pu \
     LEFT JOIN book B \
         ON B.pubid = Pu.pubid \
     LEFT JOIN article A \ 
-        ON A.pubid = Pu.pubid
+        ON A.pubid = Pu.pubid \
+WHERE name = "Peter Bumbulis"
+
+-- SELECT Au.name name
+-- FROM book B \
+--     JOIN publication Pu
+--         ON Pu.pubid = B.pubid
+--     JOIN wrote W
+--         ON W.pubid = Pu.pubid
+--     JOIN author Au
+--         ON Au.aid = W.aid
+-- WHERE B.pubid = :pubid

@@ -6,24 +6,27 @@
 EXEC SQL INCLUDE SQLCA; 
 
 EXEC SQL BEGIN DECLARE SECTION;
-   char db[6] = "cs348";
-   char title[72], name[20], apat[10];
-   short aid;
+    char db[6] = "cs348";
+    char name[23];
+    char title[71];
+    int year;
+    // for books
+    char pubid[11];  
+    char publisher[51];
+    // for journals
+    int volume;
+    int number;
 EXEC SQL END DECLARE SECTION;
 
-int main(int argc, char *argv[]) {
-   if (argc!=2) {
+int main( int argc, char *argv[] ) {
+   if ( argc != 2 ) {
       printf("Usage: %s [ author_name ]\n", argv[0]);
       exit(1);
    };
 
-   printf("Sample C program: SAMPLE3\n" );
-
    EXEC SQL WHENEVER SQLERROR  GO TO error;
 
    EXEC SQL CONNECT TO :db;
-
-   printf("Connected to DB2\n");
 
    strncpy(apat,argv[1],8);
      
