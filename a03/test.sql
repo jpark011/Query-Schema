@@ -12,13 +12,13 @@ FROM author Au \
         ON B.pubid = Pu.pubid \
     LEFT JOIN article A \ 
         ON A.pubid = Pu.pubid \
-WHERE name = "Peter Bumbulis"
+WHERE Au.name LIKE "Peter Bumbulis" 
 
 -- SELECT Au.name name
 -- FROM book B \
 --     JOIN publication Pu
 --         ON Pu.pubid = B.pubid
---     JOIN wrote W
+--     LEFT JOIN wrote W
 --         ON W.pubid = Pu.pubid
 --     JOIN author Au
 --         ON Au.aid = W.aid
