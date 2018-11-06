@@ -40,7 +40,23 @@ FROM author Au
         ON W.aid = Au.aid
 WHERE W.pubid = 
 
-SELECT appearsin
-FROM article A
-WHERE A.pubid = :pubid
+
 ORDER BY startpage
+
+SELECT Pu.pubid pubid, Pu.title title, unionPJ.year year,
+        unionPJ.volume volume, unionPJ.number number
+FROM publication Pu
+    JOIN (
+        SELECT pubid, year, NULL AS volume, NULL AS number
+        FROM proceedings
+        UNION
+        SELECT pubid, year, volume, number
+        FROM journal
+    ) unionPJ
+    LEFT JOIN (
+        SELECT appearsin
+        FROM article A
+        WHERE A.pubid = :pubid
+    ) Ap
+        ON Ap.appearsin = Pu.pubid
+ORDER BY Ap.startpage

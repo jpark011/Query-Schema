@@ -7,20 +7,13 @@ EXEC SQL INCLUDE SQLCA;
 
 EXEC SQL BEGIN DECLARE SECTION;
     char db[6] = "cs348";
-    char name[23];
+    char pubid[11];  
     char title[71];
     int year;
-    // for books
-    char pubid[11];  
-    char publisher[51];
+    char appearsin[11];
     // for journals
     int volume;
     int number;
-    // for articles
-    char appearsin[11];
-    int startpage;
-    int endpage;
-    int numAuthors;
 EXEC SQL END DECLARE SECTION;
 
 typedef enum Type {
@@ -44,7 +37,7 @@ char* getType( Type t ) {
 
 int main( int argc, char *argv[] ) {
     if ( argc != 2 ) {
-        printf("Usage: %s [ author_name ]\n", argv[0]);
+        printf("Usage: %s [ article_pubid ]\n", argv[0]);
         exit(1);
     };
 
@@ -55,41 +48,29 @@ int main( int argc, char *argv[] ) {
     strncpy( name, argv[1] , 23 );
         
     EXEC SQL DECLARE p CURSOR FOR
-        SELECT Au.name name, Pu.title title, Pu.pubid pubid,
-            unionPu.year year, unionPu.volume volume, unionPu.number number, unionPu.publisher publisher,
-            unionPu.appearsin appearsin, unionPu.startpage startpage, unionPu.endpage endpage
-        FROM author Au 
-            JOIN wrote W 
-                ON W.aid = Au.aid 
-            JOIN publication Pu 
-                ON Pu.pubid = W.pubid 
+        SELECT Pu.pubid pubid, Pu.title title, unionPJ.year year,
+                unionPJ.volume volume, unionPJ.number number
+        FROM publication Pu
             JOIN (
-                SELECT pubid, year, NULL AS volume, NULL AS number, NULL AS publisher, NULL AS appearsin, NULL AS startpage, NULL AS endpage
+                SELECT pubid, year, NULL AS volume, NULL AS number
                 FROM proceedings
                 UNION
-                SELECT pubid, year, volume, number, NULL AS publisher, NULL AS appearsin, NULL AS startpage, NULL AS endpage
+                SELECT pubid, year, volume, number
                 FROM journal
-                UNION
-                SELECT pubid, year, NULL AS volume, NULL AS number, publisher, NULL AS appearsin, NULL AS startpage, NULL AS endpage
-                FROM book
-                UNION
-                SELECT pubid, NULL AS year, NULL AS volume, NULL AS number, NULL AS publisher, appearsin, startpage, endpage
-                FROM article
-            ) unionPu
-                ON unionPu.pubid = Pu.pubid
-        WHERE Au.name = :name
-        ORDER BY unionPu.year;
+            ) unionPJ
+            LEFT JOIN (
+                SELECT appearsin
+                FROM article A
+                WHERE A.pubid = :pubid
+            ) Ap
+                ON Ap.appearsin = Pu.pubid
+        ORDER BY Ap.startpage
     EXEC SQL OPEN p;
     EXEC SQL WHENEVER NOT FOUND GO TO end;
     for (;;) {
         Type t;
-        EXEC SQL FETCH p INTO :name, :title, :pubid, :year, :volume, :number, :publisher,
-                                :appearsin, :startpage, :endpage;
-        if ( appearsin != NULL ) {          // article
-            t = Article;
-        } else if ( publisher != NULL ) {   // book 
-            t = Book;
-        } else if ( 0 <= volume ) {         // journal
+        EXEC SQL FETCH p INTO :pubid, :title, :year, :volume, :number;
+        if ( 0 <= volume ) {         // journal
             t = Journal;
         } else {                            // proceedings
             t = Proceedings;
@@ -98,16 +79,6 @@ int main( int argc, char *argv[] ) {
         printf( "Pubid: %s\n", pubid );
         printf( "Type: %s\n", getType( t ) );
         printf( "Title: %s\n", title );
-
-        if ( t == Book || t == Article ) {
-            EXEC SQL DECLARE a CURSOR FOR
-                SELECT Au.name name
-                FROM author Au
-                    JOIN wrote W
-                        ON W.aid = Au.aid
-                WHERE W.pubid = :pubid
-                ORDER BY Au.name;
-        }
 
         switch ( t ) {
             case Proceedings:
